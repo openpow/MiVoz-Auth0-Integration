@@ -1,5 +1,4 @@
 function (user, context, callback) {
-    console.log(user);
     if(context.clientID === "UV33huHnJUSqyKCBuyBu5s9CSbTAdOES") {
         var discourse_sso = require('discourse-sso');
         var sso = new discourse_sso(context.clientMetadata.sso_secret);
@@ -20,13 +19,10 @@ function (user, context, callback) {
             };
 
             var q = sso.buildLoginString(userparams);
-            console.log(userparams);
 
             context.redirect = {
                 url: "http://localhost:4000/session/sso_login?" + q
             };
-
-            console.log(context);
         }
     }
 
