@@ -54,7 +54,7 @@ module.exports = wt.fromExpress((req, res) => {
   // ejemplo 1: Juan Perez => jperez
   // ejemplo 2: Juan Ignacio Perez => jiperez
   var getFirstNickname = function(fullName) {
-      fullName = fullname.toLowerCase();
+      fullName = fullName.toLowerCase();
       var splitFullname = fullName.split(" ");
       var out = "";
       for(var i = 0; i < splitFullname.length - 1; i++) {
