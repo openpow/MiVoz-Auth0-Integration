@@ -7,20 +7,21 @@ const ManagementClient = require('auth0').ManagementClient;
 const jsonwebtoken = require('jsonwebtoken');
 
 module.exports = wt.fromExpress((req, res) => {
-  // setting up Auth0 Management API client (docs http://auth0.github.io/node-auth0/module-management.ManagementClient.html)
+  // se configura el cliente usando un cliente no interactivo
+  // llamadas disponibles: http://auth0.github.io/node-auth0/module-management.ManagementClient.html
   const managementClient = new ManagementClient({
     domain: req.webtaskContext.secrets.AUTH0_DOMAIN,
     clientId: req.webtaskContext.secrets.NON_INTERACTIVE_CLIENT_ID,
     clientSecret: req.webtaskContext.secrets.NON_INTERACTIVE_CLIENT_SECRET
   });
   
-  // to be able to parse any kind of request's bodies content
+  // requerido para poder parsear todo tipo de contenido que llega en los requests
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({
     extended: true
   })); 
   
-  // all routes will check the JWT
+  // todas las rutas requieren la verificación del json web token
   app.use(jwt({
       getToken: function(data) {
         // grab the access token from the query string sent by Auth0 rule instead of default authorization bearer header
@@ -31,6 +32,9 @@ module.exports = wt.fromExpress((req, res) => {
       issuer: `https://${req.webtaskContext.secrets.AUTH0_DOMAIN}/`
   }));
   
+  // se procede a chequear que no existe ese usuario en el sistema
+  // si llega a existir el primer nombre de usuario, se procede a agregar un número (empezando por 1) y se vuelve a chequear
+  // si llega a existir un nombre de usuario con un número, se aumenta el número y se vuelve a chequear
   var checkNickname = function(nickname, i) {
     i = (i !== undefined) ? i+1 : 1;
     var deferred = Promise.defer();
@@ -46,16 +50,32 @@ module.exports = wt.fromExpress((req, res) => {
     return deferred.promise;
   };
   
-  // exposing an endpoint to add the custom field full_name to user_metadata from a form using method POST
+  // el nickname es primeras letras de nombres y el apellido entero
+  // ejemplo 1: Juan Perez => jperez
+  // ejemplo 2: Juan Ignacio Perez => jiperez
+  var getFirstNickname = function(fullName) {
+      fullName = fullname.toLowerCase();
+      var splitFullname = fullName.split(" ");
+      var out = "";
+      for(var i = 0; i < splitFullname.length - 1; i++) {
+        out += splitFullname[i][0];
+      }
+      return out + splitFullname[splitFullname.length - 1];
+  };
+  
+  // este endpoint es para poder agregar un campo full_name que representa el nombre completo de la persona
+  // se espera información en el cuerpo del request ya que se espera que se utilice un formulario con método POST
   app.post('/add-full-name', (req, res) => {
-    checkNickname(req.body.full_name.replace(" ", "")).then(newNickname => {
+    checkNickname(getFirstNickname(req.body.full_name)).then(newNickname => {
       managementClient.users.updateUserMetadata(
       { id: req.user.sub }, 
       { full_name: req.body.full_name, nickname: newNickname },
       (err, user) => {
         if (err) return res.status(500).send(JSON.stringify(err));
         
-        // creating a new jwt needed by the Auth0 rule to validate the change
+        // se procede a crear un nuevo json web token para que la regla desde Auth0 verifique
+        // se agrega un campo fullNameAdded esperado por la regla para validar que se concluyó con éxito
+        // la regla que procesa esto es: https://github.com/PartidoDigital/PartidoDigital-Auth0-Integration/blob/master/rules/completar-nombre-completo.js
         jsonwebtoken.sign({
           fullNameAdded: true,
           sub: req.user.sub
