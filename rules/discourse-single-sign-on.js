@@ -14,6 +14,8 @@ function (user, context, callback) {
                 // Optional
                 "username": user.user_metadata.nickname,
                 "name": user.user_metadata.full_name,
+                "avatar_force_update": true,
+                "avatar_url": user.picture,
                 "require_activation": !user.email_verified,
                 "suppress_welcome_message": true
             };
