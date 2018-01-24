@@ -17,6 +17,20 @@ function(user, context, callback) {
             cb
         );
     }
+
+    // el nickname es primeras letras de nombres y el apellido entero
+    // ejemplo 1: Juan Perez => jperez
+    // ejemplo 2: Juan Ignacio Perez => jiperez
+    function getFirstNickname(fullName) {
+        fullName = fullName.toLowerCase();
+        var splitFullname = fullName.split(" ");
+        var out = "";
+        for(var i = 0; i < splitFullname.length - 1; i++) {
+            out += splitFullname[i][0];
+        }
+        return out + splitFullname[splitFullname.length - 1];
+    }
+
     function createToken(clientId, clientSecret, issuer, user) {
         var options = {
             expiresInMinutes: 5,
@@ -25,6 +39,7 @@ function(user, context, callback) {
         };
         return jwt.sign(user, clientSecret, options);
     }
+
     function postVerify(err, decoded) {
         if (err) {
             return callback(new UnauthorizedError("Hubo un error al actualizar el nombre completo"));
@@ -76,7 +91,7 @@ function(user, context, callback) {
                 };
             } else {
                 if(user.user_metadata.nickname === undefined) {
-                    checkNickname(user.user_metadata.full_name.replace(" ", ""))
+                    checkNickname(getFirstNickname(user.user_metadata.full_name))
                         .then(function(newNickname){
                             user.user_metadata.nickname = newNickname;
                             auth0.users.updateUserMetadata(user.user_id, user.user_metadata);
