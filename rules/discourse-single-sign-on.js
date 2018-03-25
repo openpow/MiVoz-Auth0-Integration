@@ -23,7 +23,7 @@ function (user, context, callback) {
             var q = sso.buildLoginString(userparams);
 
             context.redirect = {
-                url: "https://debate.partidodigital.org.uy/session/sso_login?" + q
+                url: "https://digo.mivoz.uy/session/sso_login?" + q
             };
         }
     }
